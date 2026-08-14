@@ -1,4 +1,4 @@
-# GTKWave Lite (VCDView)
+# VCDView
 
 > 使用 [TauriCPP](https://github.com/tauri-apps)（WebView2 + C++ 后端 + Web 前端）重构的 GTKWave 波形查看器。
 > **v1.0.0** — 开箱即用：单文件免安装，打开 3.68MB / 59.5 万行 / 2857 信号的 VCD 约 1 秒。
