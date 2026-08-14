@@ -1,0 +1,35 @@
+# Build
+build/
+build-*/
+build_test/
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.lib
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.vscode/
+.idea/
+*.user
+
+# Misc
+*.log
+*log.txt
+generated/
+
+# CodeBuddy 工具数据
+.codebuddy/
+
+# 发布产物
+release/
+
+# 第三方源码副本（仅供本地参考，不推入仓库）
+# - TauriCPP/   完整框架副本（含嵌套 .git 与构建产物），实际使用的是 src/tauricpp
+# - gtkwave-gtk3-3.3.128/  GTKWave 上游参考源码，实际使用的是 src/vcd 剥离版
+TauriCPP/
+gtkwave-gtk3-3.3.128/
