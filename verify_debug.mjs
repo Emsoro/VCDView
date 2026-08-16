@@ -1,11 +1,11 @@
 // 真实链路验证：连接运行中的 VCDView.exe (WebView2 远程调试 9222)
 // 触发真实 C++ 后端解析 demo1ns.vcd -> 勾选信号 -> 渲染截图 -> 核对数据
-import puppeteer from "file:///d:/Work/CPlusPlus/GTKWave/frontend/node_modules/puppeteer-core/lib/puppeteer/puppeteer-core.js";
+import puppeteer from "file:///d:/Cplusplus/VCDView/frontend/node_modules/puppeteer-core/lib/puppeteer/puppeteer-core.js";
 import fs from "fs";
 import path from "path";
 
-const OUT = path.normalize("d:/Work/CPlusPlus/GTKWave/build_test/debug_shots");
-const VCD_PATH = "d:/Work/CPlusPlus/GTKWave/demo1ns.vcd";
+const OUT = path.normalize("d:/Cplusplus/VCDView/build_test/debug_shots");
+const VCD_PATH = "d:/Cplusplus/VCDView/test_data/demo1ns.vcd";
 fs.mkdirSync(OUT, { recursive: true });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

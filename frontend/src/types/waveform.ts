@@ -61,6 +61,8 @@ export interface WaveformQueryRequest {
   time_start: number;
   time_end: number;
   signal_ids: number[];
+  /** 与 signal_ids 一一对应：-1=整向量，0..width-1=指定位 */
+  bit_indices?: number[];
   max_points: number;
 }
 
@@ -69,7 +71,14 @@ export interface WaveformQueryResult {
   /** 可见窗口内的时间轴（按像素列抽稀后的时间戳） */
   timeline: number[];
   /** 每个信号的变化点 */
-  signals: { id: number; changes: ChangePoint[] }[];
+  signals: {
+    id: number;
+    /** 信号位宽（来自文档） */
+    width?: number;
+    /** 本次查询抽取的比特位（>=0 时 values 为单字符） */
+    bit?: number;
+    changes: ChangePoint[];
+  }[];
   /** 查询窗口是否已达文件末尾 */
   end: boolean;
 }

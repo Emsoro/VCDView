@@ -143,10 +143,10 @@ export default function Toolbar() {
         <>
           {/* 缩放控制组：缩小 / 放大 / 显示全部 */}
           <div className="mx-1 flex items-center gap-0.5 rounded-md bg-panel px-1 py-1">
-            <IconBtn title="缩小（左边界不变，范围×2）" onClick={zoomOut}>
+            <IconBtn title="缩小（↓ / 左边界不变，范围×2）" onClick={zoomOut}>
               <FiZoomOut size={13} />
             </IconBtn>
-            <IconBtn title="放大（左边界不变，范围÷2）" onClick={zoomIn}>
+            <IconBtn title="放大（↑ / 左边界不变，范围÷2）" onClick={zoomIn}>
               <FiZoomIn size={13} />
             </IconBtn>
             <IconBtn title="显示全部 (Fit)" onClick={zoomFit}>

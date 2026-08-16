@@ -21,6 +21,7 @@ frontend/dist/
 *.log
 *log.txt
 generated/
+verify_*.mjs
 
 # CodeBuddy 工具数据
 .codebuddy/

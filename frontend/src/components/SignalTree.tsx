@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useAppStore } from "../state/store";
+import { useAppStore, sigKey } from "../state/store";
 import type { ScopeNode } from "../types/waveform";
 import { FiSearch, FiChevronRight, FiChevronDown, FiX } from "react-icons/fi";
 import {
@@ -37,7 +37,7 @@ export default function SignalTree({ width }: SignalTreeProps) {
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
-  const viewIds = useMemo(() => new Set(viewSignals.map((s) => s.id)), [viewSignals]);
+  const viewKeys = useMemo(() => new Set(viewSignals.map((s) => sigKey(s))), [viewSignals]);
 
   /** 匹配信号 id 集合（搜索过滤） */
   const matchedIds = useMemo(() => {
@@ -75,25 +75,60 @@ export default function SignalTree({ width }: SignalTreeProps) {
     });
   }
 
-  function toggleSignal(node: ScopeNode, path: string) {
-    const full = path ? `${path}.${node.name}` : node.name;
+  function toggleSignal(node: ScopeNode, path: string, bit?: number) {
     const sid = node.signal_idx ?? -1;
-    if (viewIds.has(sid)) {
-      removeSignal(sid);
+    const key = sigKey({ id: sid, bit });
+    if (viewKeys.has(key)) {
+      removeSignal(key);
     } else {
-      addSignal({ id: sid, name: full, width: node.width ?? 1, color: "" });
+      // 信号名只用 node.name，不带 scope 路径前缀（GTKWave 风格）
+      const label = bit === undefined ? node.name : `${node.name}[${bit}]`;
+      addSignal({ id: sid, name: label, width: node.width ?? 1, color: "", bit });
     }
   }
 
   function renderNode(node: ScopeNode, depth: number, path: string): ReactNode {
     const isScope = node.type === "scope";
+    const isVector = !isScope && (node.width ?? 1) > 1;
     const full = path ? `${path}.${node.name}` : node.name;
     const isOpen = expanded.has(node.id);
     const visible = !matchedIds || matchedIds.has(node.id);
     if (!visible) return null;
-    const checked = viewIds.has(node.signal_idx ?? -1);
+    const checked = viewKeys.has(sigKey({ id: node.signal_idx ?? -1, bit: undefined }));
 
     const indent = { paddingLeft: `${depth * 14 + 8}px` };
+
+    // 向量信号展开后的各 bit 子节点
+    const bitChildren: ReactNode[] = [];
+    if (isVector && isOpen) {
+      const msb = node.msb ?? (node.width ?? 1) - 1;
+      const lsb = node.lsb ?? 0;
+      const step = msb >= lsb ? -1 : 1;
+      for (let i = msb; step > 0 ? i <= lsb : i >= lsb; i += step) {
+        const bkey = sigKey({ id: node.signal_idx ?? -1, bit: i });
+        const bchecked = viewKeys.has(bkey);
+        bitChildren.push(
+          <div
+            key={`${node.id}.${i}`}
+            className="flex cursor-pointer items-center gap-1 rounded px-1 py-[3px] transition hover:bg-panel2"
+            style={{ paddingLeft: `${(depth + 1) * 14 + 8}px` }}
+            onClick={() => toggleSignal(node, path, i)}
+          >
+            <span
+              className={`flex h-3.5 w-3.5 items-center justify-center rounded-[3px] border ${
+                bchecked ? "border-accent bg-accent" : "border-text2/50 hover:border-accent2"
+              }`}
+            >
+              {bchecked && <FiX size={9} className="text-text1" />}
+            </span>
+            <TypeIcon node={{ ...node, type: "wire", width: 1 }} />
+            <span className={`truncate text-[12px] ${bchecked ? "text-accent2" : "text-text1"}`}>
+              {node.name}[{i}]
+            </span>
+          </div>
+        );
+      }
+    }
 
     return (
       <div key={node.id}>
@@ -106,11 +141,25 @@ export default function SignalTree({ width }: SignalTreeProps) {
             <span className="text-text2">
               {isOpen ? <FiChevronDown size={11} /> : <FiChevronRight size={11} />}
             </span>
+          ) : isVector ? (
+            <span
+              className="text-text2"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggle(node.id);
+              }}
+            >
+              {isOpen ? <FiChevronDown size={11} /> : <FiChevronRight size={11} />}
+            </span>
           ) : (
             <span
               className={`flex h-3.5 w-3.5 items-center justify-center rounded-[3px] border ${
                 checked ? "border-accent bg-accent" : "border-text2/50 hover:border-accent2"
               }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSignal(node, path);
+              }}
             >
               {checked && <FiX size={9} className="text-text1" />}
             </span>
@@ -125,7 +174,7 @@ export default function SignalTree({ width }: SignalTreeProps) {
           </span>
           {!isScope && (
             <span className="ml-auto pr-1 text-[10px] text-text2">
-              {node.width && node.width > 1 ? `[${node.msb}:${node.lsb}]` : ""}
+              {isVector ? `[${node.msb}:${node.lsb}]` : ""}
             </span>
           )}
         </div>
@@ -134,6 +183,7 @@ export default function SignalTree({ width }: SignalTreeProps) {
             {node.children?.map((c) => renderNode(c, depth + 1, full))}
           </div>
         )}
+        {isVector && isOpen && <div>{bitChildren}</div>}
       </div>
     );
   }

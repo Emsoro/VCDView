@@ -2,11 +2,36 @@ import Toolbar from "./components/Toolbar";
 import SignalTree from "./components/SignalTree";
 import WaveformViewport from "./components/WaveformViewport";
 import StatusBar from "./components/StatusBar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAppStore } from "./state/store";
 
 export default function App() {
   const [treeWidth, setTreeWidth] = useState(280);
   const [treeCollapsed, setTreeCollapsed] = useState(false);
+
+  // 全局快捷键：↑ 放大、↓ 缩小（与工具栏按钮等价，固定左边界）
+  const timeWindow = useAppStore((s) => s.timeWindow);
+  const setTimeWindow = useAppStore((s) => s.setTimeWindow);
+  const doc = useAppStore((s) => s.doc);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!doc.opened || !timeWindow) return;
+      // 输入框聚焦时不拦截方向键
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const span = timeWindow.end - timeWindow.start;
+        setTimeWindow({ start: timeWindow.start, end: timeWindow.start + Math.max(1, span / 2) });
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const span = timeWindow.end - timeWindow.start;
+        setTimeWindow({ start: timeWindow.start, end: timeWindow.start + span * 2 });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [doc.opened, timeWindow, setTimeWindow]);
 
   return (
     <div className="flex h-full w-full flex-col bg-wavebg text-text1">

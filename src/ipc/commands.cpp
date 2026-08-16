@@ -327,6 +327,13 @@ void RegisterCommands(tauricpp::Bridge& bridge) {
     if (args.contains("signal_ids") && args["signal_ids"].is_array()) {
       for (const auto& v : args["signal_ids"]) req.signal_ids.push_back(v.get<int>());
     }
+    if (args.contains("bit_indices") && args["bit_indices"].is_array()) {
+      for (const auto& v : args["bit_indices"]) req.bit_indices.push_back(v.get<int>());
+    }
+    // 若未提供 bit_indices，则与 signal_ids 等长，全部为整向量（-1）
+    if (req.bit_indices.empty()) {
+      req.bit_indices.assign(req.signal_ids.size(), -1);
+    }
 
     QueryResult res = WaveformQuery::Query(*g_doc, req);
 
@@ -353,6 +360,8 @@ void RegisterCommands(tauricpp::Bridge& bridge) {
     for (const auto& sc : res.signals) {
       nlohmann::json sj;
       sj["id"] = sc.id;
+      sj["width"] = sc.width;
+      sj["bit"] = sc.bit;
       sj["changes"] = nlohmann::json::array();
       for (size_t i = 0; i < sc.times.size(); ++i) {
         sj["changes"].push_back({{"t", sc.times[i]}, {"v", sc.values[i]}});
@@ -369,7 +378,7 @@ void RegisterCommands(tauricpp::Bridge& bridge) {
     return {
         {"framework", "TauriCPP"},
         {"backend", "C++ + WebView2"},
-        {"version", "1.0.0"},
+        {"version", "1.0.1"},
         {"format", "VCD"}
     };
   });

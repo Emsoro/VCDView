@@ -165,9 +165,10 @@ const MOCK_INFO: DocInfo = {
 function mockWaveform(req: WaveformQueryRequest): WaveformQueryResult {
   const t0 = Math.floor(req.time_start / 10) * 10;
   const timeline: number[] = [];
-  const signals = req.signal_ids.map((id) => {
+  const signals = req.signal_ids.map((id, idx) => {
     const changes: { t: number; v: string }[] = [];
     const w = id >= 12 && id <= 14 ? 8 : id === 16 ? 2 : id === 18 ? 32 : 1;
+    const bit = req.bit_indices?.[idx] ?? -1;
     let v = 0;
     for (let t = t0; t <= req.time_end; t += 10) {
       const step = Math.floor(t / 10);
@@ -182,11 +183,12 @@ function mockWaveform(req: WaveformQueryRequest): WaveformQueryResult {
       next = next & ((1 << w) - 1);
       if (next !== v || changes.length === 0) {
         v = next;
-        changes.push({ t, v: v.toString(2).padStart(w, "0") });
+        const full = v.toString(2).padStart(w, "0");
+        changes.push({ t, v: bit >= 0 ? full[w - 1 - bit] : full });
         if (timeline[timeline.length - 1] !== t) timeline.push(t);
       }
     }
-    return { id, changes };
+    return { id, width: w, bit, changes };
   });
   return { timeline, signals, end: req.time_end >= MOCK_INFO.max_time };
 }

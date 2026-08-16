@@ -49,6 +49,7 @@ export default function StatusBar() {
             {doc.info.path}
           </span>
         )}
+        <span className="text-[10px] text-text3">v1.0.1</span>
       </div>
     </footer>
   );

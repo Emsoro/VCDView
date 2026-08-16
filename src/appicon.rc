@@ -1,0 +1,4 @@
+// 应用图标资源
+// IDI_APP_ICON 作为 exe 主图标（资源管理器/任务栏显示），同时运行时可被 LoadImage 加载
+#define IDI_APP_ICON 1000
+IDI_APP_ICON ICON "icon.ico"

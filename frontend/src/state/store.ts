@@ -7,6 +7,8 @@ export interface ViewSignal {
   name: string;
   width: number;
   color: string;
+  /** 抽取的比特位（>=0 表示从总线展开的单 bit；undefined 表示整向量/bus） */
+  bit?: number;
 }
 
 /** 可见时间窗口 */
@@ -37,9 +39,9 @@ interface AppState {
   setDocOpened: (info: DocInfo, tree: ScopeNode[]) => void;
   resetDoc: () => void;
   addSignal: (sig: ViewSignal) => void;
-  removeSignal: (id: number) => void;
+  removeSignal: (key: string) => void;
   clearSignals: () => void;
-  moveSignal: (id: number, dir: -1 | 1) => void;
+  moveSignal: (key: string, dir: -1 | 1) => void;
   setRadix: (r: Radix) => void;
   setMarker: (t: number | null) => void;
   setTimeWindow: (w: TimeWindow | null) => void;
@@ -64,6 +66,11 @@ const SIGNAL_COLORS = [
   "#FF7B72",
   "#A5D6FF",
 ];
+
+/** 信号唯一键：整向量用 id，展开单 bit 用 id.bit */
+export function sigKey(sig: { id: number; bit?: number }): string {
+  return sig.bit === undefined || sig.bit < 0 ? `${sig.id}` : `${sig.id}.${sig.bit}`;
+}
 
 export const useAppStore = create<AppState>((set) => ({
   doc: { opened: false, info: null, tree: null },
@@ -93,15 +100,15 @@ export const useAppStore = create<AppState>((set) => ({
     set({ doc: { opened: false, info: null, tree: null }, viewSignals: [], markerTime: null, timeWindow: null }),
   addSignal: (sig) =>
     set((s) => {
-      if (s.viewSignals.some((x) => x.id === sig.id)) return s;
+      if (s.viewSignals.some((x) => sigKey(x) === sigKey(sig))) return s;
       const color = SIGNAL_COLORS[s.viewSignals.length % SIGNAL_COLORS.length];
       return { viewSignals: [...s.viewSignals, { ...sig, color }] };
     }),
-  removeSignal: (id) => set((s) => ({ viewSignals: s.viewSignals.filter((x) => x.id !== id) })),
+  removeSignal: (key) => set((s) => ({ viewSignals: s.viewSignals.filter((x) => sigKey(x) !== key) })),
   clearSignals: () => set({ viewSignals: [] }),
-  moveSignal: (id, dir) =>
+  moveSignal: (key, dir) =>
     set((s) => {
-      const idx = s.viewSignals.findIndex((x) => x.id === id);
+      const idx = s.viewSignals.findIndex((x) => sigKey(x) === key);
       const to = idx + dir;
       if (idx < 0 || to < 0 || to >= s.viewSignals.length) return s;
       const arr = [...s.viewSignals];

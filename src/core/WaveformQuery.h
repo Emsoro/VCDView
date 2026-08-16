@@ -9,15 +9,18 @@ namespace gtkwave {
 /** 单信号查询结果 */
 struct SignalChanges {
   int id = -1;
+  int width = 1;   // 信号位宽（来自文档，整向量）
+  int bit = -1;    // 本次查询抽取的比特位（-1 表示整向量，0..width-1 表示某一位）
   std::vector<int64_t> times;
-  std::vector<std::string> values;
+  std::vector<std::string> values;  // bit>=0 时每个值为单字符 "0"/"1"/"x"/"z"
 };
 
 /** 波形查询请求 */
 struct QueryRequest {
   int64_t time_start = 0;
   int64_t time_end = 0;
-  std::vector<int> signal_ids;
+  std::vector<int> signal_ids;        // 信号 id（与 bit_indices 一一对应）
+  std::vector<int> bit_indices;       // 每个信号抽取的比特位（-1=整向量，0..width-1=某一位）
   size_t max_points = 4096;  // 每信号最大变化点数（0 表示不限）
 };
 

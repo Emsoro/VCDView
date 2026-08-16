@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAppStore } from "../state/store";
+import { useAppStore, sigKey } from "../state/store";
 import { queryWaveform } from "../api/tauricpp";
 import { drawWaveform, ROW_H, TIME_AXIS_H, LABEL_W } from "../utils/draw";
 import { formatValue } from "../utils/format";
@@ -27,7 +27,7 @@ export default function WaveformCanvas() {
   const lastWRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(0);
-  const [data, setData] = useState<Map<number, ChangePoint[]>>(new Map());
+  const [data, setData] = useState<Map<string, ChangePoint[]>>(new Map());
   const [hoverRow, setHoverRow] = useState<number | null>(null);
   const dragRef = useRef({ x: 0, startT: 0, active: false });
 
@@ -46,10 +46,14 @@ export default function WaveformCanvas() {
           time_start: tw.start,
           time_end: tw.end,
           signal_ids: viewSignals.map((s) => s.id),
+          bit_indices: viewSignals.map((s) => (s.bit === undefined ? -1 : s.bit)),
           max_points: Math.max(64, Math.floor(w * 2)),
         });
-        const map = new Map<number, ChangePoint[]>();
-        for (const s of res.signals) map.set(s.id, s.changes);
+        const map = new Map<string, ChangePoint[]>();
+        for (const s of res.signals) {
+          const key = sigKey({ id: s.id, bit: s.bit });
+          map.set(key, s.changes);
+        }
         setData(map);
       } catch (err) {
         console.error("waveform.query failed:", err);
@@ -215,11 +219,11 @@ export default function WaveformCanvas() {
           <div className="absolute left-0 right-0" style={{ top: axisH - scrollY }}>
             {viewSignals.slice(firstRow, firstRow + visibleCount).map((sig, i) => {
               const rowIdx = firstRow + i;
-              const ch = data.get(sig.id);
+              const ch = data.get(sigKey(sig));
               const lastVal = ch && ch.length ? ch[ch.length - 1].v : "";
               return (
                 <div
-                  key={sig.id}
+                  key={sigKey(sig)}
                   className={`group flex h-[26px] items-center gap-1.5 border-b border-panel2 px-2 ${
                     hoverRow === rowIdx ? "bg-panel2/60" : "bg-panel/40"
                   }`}
@@ -234,7 +238,7 @@ export default function WaveformCanvas() {
                   {/* hover 操作：上移 / 下移 / 删除 */}
                   <span className="hidden items-center gap-0.5 group-hover:flex">
                     <button
-                      onClick={() => moveSignal(sig.id, -1)}
+                      onClick={() => moveSignal(sigKey(sig), -1)}
                       disabled={rowIdx === 0}
                       title="上移"
                       className="rounded px-0.5 text-text2 transition hover:bg-panel2 hover:text-accent2 disabled:opacity-30"
@@ -242,7 +246,7 @@ export default function WaveformCanvas() {
                       <span className="text-[10px]">↑</span>
                     </button>
                     <button
-                      onClick={() => moveSignal(sig.id, 1)}
+                      onClick={() => moveSignal(sigKey(sig), 1)}
                       disabled={rowIdx === viewSignals.length - 1}
                       title="下移"
                       className="rounded px-0.5 text-text2 transition hover:bg-panel2 hover:text-accent2 disabled:opacity-30"
@@ -250,7 +254,7 @@ export default function WaveformCanvas() {
                       <span className="text-[10px]">↓</span>
                     </button>
                     <button
-                      onClick={() => removeSignal(sig.id)}
+                      onClick={() => removeSignal(sigKey(sig))}
                       title="从视图移除"
                       className="rounded px-0.5 text-text2 transition hover:bg-panel2 hover:text-danger"
                     >

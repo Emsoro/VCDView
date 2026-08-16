@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(GTKWaveLite VERSION 1.0.0 LANGUAGES C CXX)
+project(GTKWaveLite VERSION 1.0.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -189,6 +189,7 @@ endif()
 
 add_executable(VCDView WIN32
     src/main.cpp
+    src/appicon.rc
     ${IPC_CPP_SOURCES}
     "${RESOURCE_MAP_CPP}"
     "${RESOURCES_RC}"
