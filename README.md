@@ -32,7 +32,7 @@ VCDView 是一款面向硬件工程师 / FPGA 开发者的轻量 VCD 波形查�
 
 ```
 ├── CMakeLists.txt          # 根构建（资源打包 / DPI manifest / /MT 静态链接）
-├── build.ps1               # 一键构建脚本
+├── build.ps1               # 一键构建脚本（自动构建前端）
 ├── vcpkg.json              # vcpkg 依赖（webview2）
 ├── SKILL.md                # TauriCPP 开发/调试手册（含本项目踩坑与调优经验）
 ├── docs/                   # 推文与技术文档
@@ -59,16 +59,17 @@ VCDView 是一款面向硬件工程师 / FPGA 开发者的轻量 VCD 波形查�
 # 1. 安装依赖（首次）
 .\build.ps1 -SetupDeps
 
-# 2. 构建前端
-cd frontend
-npm install
-npm run build
-cd ..
-
-# 3. 构建后端
+# 2. 一键构建（自动构建最新前端 + 编译后端）
 .\build.ps1
 # 产物: build/VCDView.exe（可复制到 release/ 作为发布包）
 ```
+
+`build.ps1` 在编译前会自动检测前端源码（`frontend/src` 及 `package.json`、`vite.config.ts`、`tailwind.config.js`、`tsconfig.json`、`index.html` 等配置文件）是否比 `frontend/dist` 产物新，需要时自动执行 `npm run build` 后再编译后端，确保 exe 始终内嵌最新前端资源。
+
+- `.\build.ps1 -BuildFrontend`：强制重新构建前端（忽略时间戳检测）
+- `.\build.ps1 -SkipFrontend`：跳过前端构建，仅编译后端（如只改 C++ 代码时）
+- 首次使用请先在 `frontend` 目录执行 `npm install`（`-SetupDeps` 不负责前端依赖）
+- 手动构建前端方式保留：`cd frontend; npm install; npm run build`
 
 ## 开发与调试
 

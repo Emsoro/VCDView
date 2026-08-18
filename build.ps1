@@ -1,17 +1,87 @@
-# GTKWaveLite 构建脚本
+﻿# GTKWaveLite 构建脚本
 # 使用方法:
-#   .\build.ps1              - 构建
-#   .\build.ps1 -Clean       - 清理构建
-#   .\build.ps1 -SetupDeps   - 首次使用：安装依赖
+#   .\build.ps1                  - 构建（自动检测并构建最新前端）
+#   .\build.ps1 -BuildFrontend   - 强制重新构建前端
+#   .\build.ps1 -SkipFrontend    - 跳过前端构建（仅编译后端）
+#   .\build.ps1 -Clean           - 清理构建
+#   .\build.ps1 -SetupDeps       - 首次使用：安装依赖
 
 param(
     [switch]$SetupDeps,
     [switch]$Clean,
+    [switch]$BuildFrontend,
+    [switch]$SkipFrontend,
     [string]$Config = "Release"
 )
 
 $ErrorActionPreference = "Stop"
 $RootDir = $PSScriptRoot
+
+# ============================================================================
+# 前端构建（自动检测 dist 是否比源码旧，是则执行 npm run build）
+# ============================================================================
+function Invoke-FrontendBuild {
+    param(
+        [bool]$Force = $false
+    )
+
+    $FrontendDir = Join-Path $RootDir "frontend"
+    $DistDir = Join-Path $FrontendDir "dist"
+    $IndexHtml = Join-Path $DistDir "index.html"
+
+    if (-not (Test-Path $FrontendDir)) {
+        Write-Host "未找到 frontend/ 目录，跳过前端构建。" -ForegroundColor Yellow
+        return
+    }
+
+    $needBuild = $Force
+
+    if (-not $needBuild) {
+        if (-not (Test-Path $IndexHtml)) {
+            Write-Host "frontend/dist 不存在，构建前端..." -ForegroundColor Cyan
+            $needBuild = $true
+        } else {
+            # 收集所有影响前端产物的源码文件（递归 src + 配置文件）
+            $sourceFiles = @()
+            $srcDir = Join-Path $FrontendDir "src"
+            if (Test-Path $srcDir) {
+                $sourceFiles += Get-ChildItem $srcDir -Recurse -File
+            }
+            foreach ($cfg in @("package.json", "vite.config.ts", "vite.config.js", "tailwind.config.js", "tailwind.config.ts", "tsconfig.json", "postcss.config.js", "index.html")) {
+                $cfgPath = Join-Path $FrontendDir $cfg
+                if (Test-Path $cfgPath) {
+                    $sourceFiles += Get-Item $cfgPath
+                }
+            }
+
+            if ($sourceFiles.Count -gt 0) {
+                $srcLatest = ($sourceFiles | Measure-Object -Property LastWriteTime -Maximum).Maximum
+                $distLatest = (Get-ChildItem $DistDir -Recurse -File | Measure-Object -Property LastWriteTime -Maximum).Maximum
+                if ($srcLatest -gt $distLatest) {
+                    Write-Host "检测到前端源码更新，重新构建前端..." -ForegroundColor Cyan
+                    $needBuild = $true
+                }
+            }
+        }
+    }
+
+    if (-not $needBuild) {
+        Write-Host "前端已是最新，跳过 npm run build。" -ForegroundColor DarkGray
+        return
+    }
+
+    Push-Location $FrontendDir
+    try {
+        Write-Host "=== 构建前端 (npm run build) ===" -ForegroundColor Cyan
+        & npm.cmd run build
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm run build 失败，退出码 $LASTEXITCODE"
+        }
+        Write-Host "前端构建成功。" -ForegroundColor Green
+    } finally {
+        Pop-Location
+    }
+}
 
 # ============================================================================
 # 安装依赖
@@ -57,6 +127,20 @@ if ($Clean) {
         Write-Host "Cleaned build directory" -ForegroundColor Green
     }
     return
+}
+
+# ============================================================================
+# 构建前端（在 CMake 之前执行，确保 exe 内嵌最新前端资源）
+# ============================================================================
+if ($BuildFrontend -and $SkipFrontend) {
+    Write-Host "警告：-BuildFrontend 与 -SkipFrontend 同时指定，-SkipFrontend 优先。" -ForegroundColor Yellow
+    $BuildFrontend = $false
+}
+
+if ($SkipFrontend) {
+    Write-Host "已指定 -SkipFrontend，跳过前端构建。" -ForegroundColor DarkGray
+} else {
+    Invoke-FrontendBuild -Force $BuildFrontend
 }
 
 # ============================================================================
